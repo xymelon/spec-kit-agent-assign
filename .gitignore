@@ -1,0 +1,3 @@
+# Spec-kit template files (installed by the host project, not part of this extension)
+.specify/
+.claude/
