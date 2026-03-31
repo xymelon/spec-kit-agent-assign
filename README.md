@@ -14,6 +14,8 @@
 
 Your `tasks.md` has 20 tasks. Some need a backend specialist, some need a frontend expert, some need a test writer. But `/speckit.implement` runs them all in one flat context. This extension fixes that — it scans your agent definitions, assigns each task to the best-fit agent, and executes them via dedicated subagents.
 
+![Concurrent execution of specialized agents](./agents.png)
+
 ## The Problem
 
 Spec-kit's standard `/speckit.implement` runs all tasks sequentially in a single agent context. This works for small projects, but as complexity grows:
@@ -23,7 +25,7 @@ Spec-kit's standard `/speckit.implement` runs all tasks sequentially in a single
 - Frontend and backend tasks compete for the same context window
 - No task-level specialization — every task gets the same generalist treatment
 
-The result: lower code quality, more rework, missed requirements, and suboptimal implementations.
+As projects scale, this one-size-fits-all approach leaves room for improvement.
 
 ## The Solution
 
@@ -48,7 +50,55 @@ Task Assignments
 Assignments written to: .specify/features/my-feature/agent-assignments.yml
 ```
 
+## Benchmark: Agent-Assign vs Standard Spec-Kit
+
+We built the same project — [TuneMuse](https://github.com/xymelon/tune-muse), an AI-powered music recommendation app — twice:
+
+- **Plan A** ([tune-muse](https://github.com/xymelon/tune-muse)): Standard spec-kit workflow using `/speckit.implement`
+- **Plan B** ([tune-muse-assign](https://github.com/xymelon/tune-muse-assgin)): Same `tasks.md`, executed with `spec-kit-agent-assign`
+
+Three frontier models (Gemini 3.1 Pro, GPT-5-4, Claude Opus 4.6) evaluated both implementations across three dimensions. Each dimension was scored 1–10.
+
+### Evaluation Dimensions
+
+| Dimension | What it measures |
+|-----------|-----------------|
+| **Result Quality** | Spec/plan/task completeness, code quality, test coverage, runnability and maintainability |
+| **Task Execution** | Adherence to `tasks.md`, reduced skipped/faked steps, dependency handling, less rework |
+| **Overall Value** | Quality improvement vs. added complexity, reusability, long-term maintenance worthiness |
+
+### Detailed Scores
+
+| Dimension | Gemini 3.1 Pro | GPT-5-4 | Opus 4.6 |
+|-----------|---------------|---------|----------|
+| Result Quality | A:6 / B:**9** (+3) | A:6 / B:**8** (+2) | A:5 / B:**7.5** (+2.5) |
+| Task Execution | A:5 / B:**9** (+4) | A:6 / B:**7** (+1) | A:4.5 / B:**6** (+1.5) |
+| Overall Value | A:6 / B:**8.5** (+2.5) | A:6 / B:**7.5** (+1.5) | A:5 / B:**7** (+2) |
+| **Total (out of 30)** | A:17 / B:**26.5** | A:18 / B:**22.5** | A:14.5 / B:**20.5** |
+| **B's Lead** | **+9.5** | **+4.5** | **+6** |
+
+### Cross-Model Averages
+
+| Dimension | Plan A Avg | Plan B Avg | Delta |
+|-----------|-----------|-----------|-------|
+| Result Quality | 5.7 | **8.2** | **+2.5** |
+| Task Execution | 5.2 | **7.3** | **+2.1** |
+| Overall Value | 5.7 | **7.7** | **+2.0** |
+| **Total** | **16.5** | **23.2** | **+6.7** |
+
+**Plan B leads by ~+2.2 points per dimension on average, with a 40% higher total score.**
+
+### Model Consensus
+
+| Question | Gemini 3.1 Pro | GPT-5-4 | Opus 4.6 |
+|----------|---------------|---------|----------|
+| Is B better than A? | Significantly better | Better | Clearly better |
+| Worth long-term maintenance? | Strongly recommended | Concept worth keeping | Recommended, needs iteration |
+| Highest-value aspect | YAML-driven routing + context-isolated execution | Task-level specialization with parallel execution | Specialized agent spawning in the execute phase |
+
 ## Quick Start
+
+> **Need ready-made agents?** You can bootstrap your `.claude/agents/` directory with the open-source [agency-agents](https://github.com/msitarzewski/agency-agents) collection — a curated library of specialized agent definitions covering frontend, backend, testing, DevOps, and more. Copy the ones you need and the extension will discover them automatically.
 
 ```bash
 # Install the extension
@@ -136,52 +186,6 @@ Phase 2: Foundational — Complete (5/5 tasks)
   T006 (test-writer)  — Wrote integration tests
 ```
 
-## Benchmark: Agent-Assign vs Standard Spec-Kit
-
-We built the same project — [TuneMuse](https://github.com/xymelon/tune-muse), an AI-powered music recommendation app — twice:
-
-- **Plan A** ([tune-muse](https://github.com/xymelon/tune-muse)): Standard spec-kit workflow using `/speckit.implement`
-- **Plan B** ([tune-muse-assign](https://github.com/xymelon/tune-muse-assgin)): Same `tasks.md`, executed with `spec-kit-agent-assign`
-
-Three frontier models (Gemini 3.1 Pro, GPT-5-4, Claude Opus 4.6) evaluated both implementations across three dimensions. Each dimension was scored 1–10.
-
-### Evaluation Dimensions
-
-| Dimension | What it measures |
-|-----------|-----------------|
-| **Result Quality** | Spec/plan/task completeness, code quality, test coverage, runnability and maintainability |
-| **Task Execution** | Adherence to `tasks.md`, reduced skipped/faked steps, dependency handling, less rework |
-| **Overall Value** | Quality improvement vs. added complexity, reusability, long-term maintenance worthiness |
-
-### Detailed Scores
-
-| Dimension | Gemini 3.1 Pro | GPT-5-4 | Opus 4.6 |
-|-----------|---------------|---------|----------|
-| Result Quality | A:6 / B:**9** (+3) | A:6 / B:**7.5** (+1.5) | A:5 / B:**7.5** (+2.5) |
-| Task Execution | A:5 / B:**9** (+4) | A:6 / B:**6.5** (+0.5) | A:4.5 / B:**6** (+1.5) |
-| Overall Value | A:6 / B:**8.5** (+2.5) | A:6 / B:**7** (+1) | A:5 / B:**7** (+2) |
-| **Total (out of 30)** | A:17 / B:**26.5** | A:18 / B:**21** | A:14.5 / B:**20.5** |
-| **B's Lead** | **+9.5** | **+3** | **+6** |
-
-### Cross-Model Averages
-
-| Dimension | Plan A Avg | Plan B Avg | Delta |
-|-----------|-----------|-----------|-------|
-| Result Quality | 5.7 | **8.0** | **+2.3** |
-| Task Execution | 5.2 | **7.2** | **+2.0** |
-| Overall Value | 5.7 | **7.5** | **+1.8** |
-| **Total** | **16.5** | **22.7** | **+6.2** |
-
-**Plan B leads by ~+2 points per dimension on average, with a 37% higher total score.**
-
-### Model Consensus
-
-| Question | Gemini 3.1 Pro | GPT-5-4 | Opus 4.6 |
-|----------|---------------|---------|----------|
-| Is B better than A? | Significantly better | Better, with limited edge | Clearly better |
-| Worth long-term maintenance? | Strongly recommended | Concept worth keeping, implementation needs refinement | Recommended, needs iteration |
-| Highest-value aspect | YAML-driven routing + context-isolated execution | Task-level specialization with parallel execution | Specialized agent spawning in the execute phase |
-
 ## Workflow Integration
 
 This extension slots into the standard spec-kit pipeline, replacing the final implementation step:
@@ -230,11 +234,13 @@ You are a backend development specialist...
 EOF
 ```
 
+Or use the [agency-agents](https://github.com/msitarzewski/agency-agents) library to quickly populate your agent roster with battle-tested definitions.
+
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| "No agent definition files found" | Create agent files in `.claude/agents/` or `~/.claude/agents/` |
+| "No agent definition files found" | Create agent files in `.claude/agents/` or `~/.claude/agents/`, or use [agency-agents](https://github.com/msitarzewski/agency-agents) |
 | "No agent-assignments.yml found" | Run `/speckit.agent-assign.assign` before validate or execute |
 | Agent drift detected during validation | Re-run `/speckit.agent-assign.assign` to update assignments |
 | Task assigned to missing agent | The execute command falls back to `default` mode with a warning |
