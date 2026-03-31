@@ -5,7 +5,7 @@ extension:
   name: "Agent Assign"
   version: "1.0.0"
   description: "Assign specialized Claude Code agents to spec-kit tasks for targeted execution"
-  author: "xuyangxy"
+  author: "xuyang"
   repository: "https://github.com/xymelon/spec-kit-agent-assign"
   license: "MIT"
 
