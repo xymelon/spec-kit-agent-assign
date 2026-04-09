@@ -102,7 +102,7 @@ Three frontier models (Gemini 3.1 Pro, GPT-5-4, Claude Opus 4.6) evaluated both 
 
 ```bash
 # Install the extension
-specify extension add --from https://github.com/xymelon/spec-kit-agent-assign/archive/refs/heads/main.zip
+specify extension add agent-assign --from https://github.com/xymelon/spec-kit-agent-assign/archive/refs/heads/main.zip
 
 # Generate tasks as usual
 /speckit.tasks
@@ -206,10 +206,10 @@ The `after_tasks` hook can automatically trigger agent assignment after task gen
 
 ```bash
 # From release (recommended)
-specify extension add --from https://github.com/xymelon/spec-kit-agent-assign/archive/refs/tags/v1.0.0.zip
+specify extension add agent-assign --from https://github.com/xymelon/spec-kit-agent-assign/archive/refs/tags/v1.0.0.zip
 
 # From main branch (latest)
-specify extension add --from https://github.com/xymelon/spec-kit-agent-assign/archive/refs/heads/main.zip
+specify extension add agent-assign --from https://github.com/xymelon/spec-kit-agent-assign/archive/refs/heads/main.zip
 
 # Development mode (local clone)
 specify extension add --dev /path/to/spec-kit-agent-assign
