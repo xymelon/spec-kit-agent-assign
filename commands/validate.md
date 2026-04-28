@@ -1,5 +1,8 @@
 ---
 description: Validate that all agent assignments are correct and agents exist
+scripts:
+  sh: scripts/bash/check-prerequisites.sh --json --require-tasks
+  ps: scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks
 handoffs:
   - label: Reassign Agents
     agent: speckit.agent-assign.assign
@@ -24,7 +27,7 @@ Verify that agent assignments in `agent-assignments.yml` are complete, consisten
 
 ## Outline
 
-1. **Setup**: Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
+1. **Setup**: Run `{SCRIPT}` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Check Assignment File Exists**: Verify `agent-assignments.yml` exists in FEATURE_DIR.
    - If missing, **STOP** and report: "No agent-assignments.yml found. Run `/speckit.agent-assign.assign` first to generate agent assignments."
