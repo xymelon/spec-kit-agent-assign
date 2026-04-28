@@ -1,5 +1,8 @@
 ---
 description: Scan available Claude Code agents and assign them to tasks in tasks.md
+scripts:
+  sh: scripts/bash/check-prerequisites.sh --json --require-tasks
+  ps: scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks
 handoffs:
   - label: Validate Assignments
     agent: speckit.agent-assign.validate
@@ -20,7 +23,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-1. **Setup**: Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
+1. **Setup**: Run `{SCRIPT}` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Scan Agent Definitions**: Discover all available Claude Code agent definition files following the official hierarchy. Higher-priority levels override lower-priority agents with the same name.
 
