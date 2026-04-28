@@ -206,7 +206,7 @@ The `after_tasks` hook can automatically trigger agent assignment after task gen
 
 ```bash
 # From release (recommended)
-specify extension add agent-assign --from https://github.com/xymelon/spec-kit-agent-assign/archive/refs/tags/v1.0.0.zip
+specify extension add agent-assign --from https://github.com/xymelon/spec-kit-agent-assign/archive/refs/tags/v1.1.0.zip
 
 # From main branch (latest)
 specify extension add agent-assign --from https://github.com/xymelon/spec-kit-agent-assign/archive/refs/heads/main.zip
@@ -215,7 +215,7 @@ specify extension add agent-assign --from https://github.com/xymelon/spec-kit-ag
 specify extension add --dev /path/to/spec-kit-agent-assign
 ```
 
-**Requirements**: spec-kit >= 0.3.0
+**Requirements**: spec-kit >= 0.7.1
 
 ## Configuration
 

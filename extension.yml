@@ -3,14 +3,14 @@ schema_version: "1.0"
 extension:
   id: "agent-assign"
   name: "Agent Assign"
-  version: "1.0.0"
+  version: "1.1.0"
   description: "Assign specialized Claude Code agents to spec-kit tasks for targeted execution"
   author: "xuyang"
   repository: "https://github.com/xymelon/spec-kit-agent-assign"
   license: "MIT"
 
 requires:
-  speckit_version: ">=0.3.0"
+  speckit_version: ">=0.7.1"
   commands:
     - "speckit.tasks"
     - "speckit.implement"
