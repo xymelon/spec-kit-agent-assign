@@ -1,0 +1,23 @@
+# Files excluded from `specify extension add` installs.
+# See: https://github.com/github/spec-kit/blob/main/extensions/EXTENSION-DEVELOPMENT-GUIDE.md#excluding-files-with-extensionignore
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Version control & CI (matters mostly for `--dev` installs from a local clone)
+.git/
+.gitignore
+.github/
+
+# Maintainer-only docs (Claude Code instructions for extension developers, not users)
+CLAUDE.md
+
+# Host spec-kit workspace used to develop this extension — NOT part of the extension.
+# Contains core command copies (speckit.specify.md, speckit.tasks.md, etc.) that would
+# otherwise be shipped verbatim alongside our extension commands.
+.claude/
+.specify/
