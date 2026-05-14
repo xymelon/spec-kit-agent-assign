@@ -1,5 +1,5 @@
 ---
-description: Validate that all Claude Code and Codex agent assignments are correct and specialists exist
+description: Validate that all Claude Code and Codex agent assignments are correct and agents exist
 scripts:
   sh: scripts/bash/check-prerequisites.sh --json --require-tasks
   ps: scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks
@@ -23,7 +23,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Goal
 
-Verify that assignments in `agent-assignments.yml` are complete, consistent, and reference Claude Code or Codex specialists that actually exist. This command is **READ-ONLY** - it does not modify any files. If issues are found, it suggests remediation actions.
+Verify that assignments in `agent-assignments.yml` are complete, consistent, and reference Claude Code or Codex agents that actually exist. This command is **READ-ONLY** - it does not modify any files. If issues are found, it suggests remediation actions.
 
 ## Outline
 
@@ -44,12 +44,12 @@ Verify that assignments in `agent-assignments.yml` are complete, consistent, and
 
 4. **Normalize Assignment References**: Convert legacy references to the current format before validating.
    - `default` is always valid and means inline execution.
-   - A reference already starting with `claude:`, `codex-agent:`, or `codex-skill:` is already normalized.
+   - A reference already starting with `claude:` or `codex:` is already normalized.
    - A legacy unprefixed reference should be resolved against the current registry by name.
-   - If a legacy unprefixed reference matches exactly one current specialist, validate it but warn that the assignment file should be regenerated to write normalized ids.
-   - If a legacy unprefixed reference matches multiple runtimes or kinds, mark it `AMBIGUOUS`.
+   - If a legacy unprefixed reference matches exactly one current agent, validate it but warn that the assignment file should be regenerated to write normalized ids.
+   - If a legacy unprefixed reference matches multiple runtimes, mark it `AMBIGUOUS`.
 
-5. **Rescan Agent and Skill Definitions**: Discover currently available definitions using the same hierarchy as the assign command.
+5. **Rescan Agent Definitions**: Discover currently available definitions using the same hierarchy as the assign command.
 
    **Claude Code scanning priority**:
    1. `.claude/agents/*.md` in the repository root
@@ -57,13 +57,9 @@ Verify that assignments in `agent-assignments.yml` are complete, consistent, and
 
    **Codex scanning priority**:
    1. `.codex/agents/*.toml`
-   2. `.agents/skills/*/SKILL.md` (skip generated `speckit-*` workflow skills unless they are already referenced by an assignment)
-   3. `.codex/skills/*/SKILL.md`
-   4. `~/.codex/agents/*.toml`
-   5. `~/.codex/skills/*/SKILL.md`
-   6. Built-in Codex agent roles: `codex-agent:worker` and `codex-agent:explorer`
+   2. `~/.codex/agents/*.toml`
 
-   Build a **Current Agent Registry** keyed by normalized id. Preserve `runtime`, `kind`, `name`, `source`, `description`, and source path for each row.
+   Build a **Current Agent Registry** keyed by normalized id. Preserve `runtime`, `name`, `source`, `description`, and source path for each row.
 
 6. **Run Validation Checks**: Perform the following checks and record results:
 
@@ -75,23 +71,20 @@ Verify that assignments in `agent-assignments.yml` are complete, consistent, and
 
    **Check 3 - Runtime Availability**: Each non-default assignment references a runtime that is currently discoverable.
    - Claude assignments require the matching `.claude/agents/*.md` or `~/.claude/agents/*.md` file.
-   - Codex agent assignments require the matching `.codex/agents/*.toml`, `~/.codex/agents/*.toml`, or built-in role.
-   - Codex skill assignments require the matching `SKILL.md` file.
+   - Codex assignments require the matching `.codex/agents/*.toml` or `~/.codex/agents/*.toml` file.
 
-   **Check 4 - Agent Conflicts**: No specialist name appears at multiple priority levels in the same runtime/kind with different definitions.
+   **Check 4 - Agent Conflicts**: No agent name appears at multiple priority levels in the same runtime with different definitions.
    - Status: `OK` or `CONFLICT`
-   - Runtime prefixes allow `claude:backend-dev` and `codex-agent:backend-dev` to coexist, but the report should still call out cross-runtime same-name entries for operator awareness.
+   - Runtime prefixes allow `claude:backend-dev` and `codex:backend-dev` to coexist, but the report should still call out cross-runtime same-name entries for operator awareness.
 
    **Check 5 - Agent Drift**: Compare `agents_scanned` from the assignment file against the current registry.
-   - Report any specialists that were available during assignment but are now missing.
-   - Report any new specialists that were not available during assignment.
+   - Report any agents that were available during assignment but are now missing.
+   - Report any new agents that were not available during assignment.
    - For legacy v1 files without ids, compare by name and source when possible.
 
    **Check 6 - Metadata Validity**:
    - Claude Code agent files must have valid YAML frontmatter with at least a `description` field.
-   - Codex skill files must have valid YAML frontmatter with at least a `description` field.
    - Codex agent TOML files must be parseable TOML and should have a `description` field.
-   - Built-in Codex roles are always valid.
 
 7. **Generate Validation Report**: Output a structured report:
 
@@ -110,8 +103,8 @@ Verify that assignments in `agent-assignments.yml` are complete, consistent, and
    | Total tasks          | 15    |
    | Assigned tasks       | 15    |
    | Unassigned tasks     | 0     |
-   | Valid specialists    | 12    |
-   | Missing specialists  | 0     |
+   | Valid agents         | 12    |
+   | Missing agents       | 0     |
    | Ambiguous references | 0     |
    | Conflicts            | 0     |
    | Agent drift detected | No    |
@@ -120,25 +113,24 @@ Verify that assignments in `agent-assignments.yml` are complete, consistent, and
 
    ### Task Assignment Details
 
-   | Task ID | Assigned Specialist     | Runtime | Kind  | Status    |
-   |---------|-------------------------|---------|-------|-----------|
-   | T001    | default                 | inline  | none  | OK        |
-   | T002    | claude:backend-dev      | claude  | agent | OK        |
-   | T003    | codex-agent:worker      | codex   | agent | OK        |
-   | T004    | codex-skill:playwright  | codex   | skill | OK        |
+   | Task ID | Assigned Agent     | Runtime | Status    |
+   |---------|--------------------|---------|-----------|
+   | T001    | default            | inline  | OK        |
+   | T002    | claude:backend-dev | claude  | OK        |
+   | T003    | codex:api-dev      | codex   | OK        |
 
    ### Issues Found (if any)
 
-   1. **MISSING**: Task T003 assigned to `codex-agent:api-dev` which does not exist at any Codex hierarchy level
+   1. **MISSING**: Task T003 assigned to `codex:api-dev` which does not exist at any Codex hierarchy level
    2. **UNASSIGNED**: Task T010 has no entry in agent-assignments.yml
-   3. **AMBIGUOUS**: Task T012 uses legacy reference `backend-dev`, but both `claude:backend-dev` and `codex-agent:backend-dev` exist
+   3. **AMBIGUOUS**: Task T012 uses legacy reference `backend-dev`, but both `claude:backend-dev` and `codex:backend-dev` exist
    4. **CONFLICT**: Codex agent `helper` found at both project and user level with different descriptions
    5. **DRIFT**: `claude:api-dev` was available during assignment but has since been removed
 
    ### Recommended Actions
 
    - Run `/speckit.agent-assign.assign` to regenerate normalized assignments
-   - Or manually edit `agent-assignments.yml` to use a specific normalized id such as `claude:<name>`, `codex-agent:<name>`, or `codex-skill:<name>`
+   - Or manually edit `agent-assignments.yml` to use a specific normalized id such as `claude:<name>` or `codex:<name>`
    ```
 
 8. **Final Verdict**:

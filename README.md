@@ -12,7 +12,7 @@
 
 <br/>
 
-Your `tasks.md` has 20 tasks. Some need a backend specialist, some need a frontend expert, some need a test writer. But `/speckit.implement` runs them all in one flat context. This extension fixes that — it scans Claude Code agents and Codex agents/skills, assigns each task to the best-fit specialist, and executes them with focused context.
+Your `tasks.md` has 20 tasks. Some need a backend specialist, some need a frontend expert, some need a test writer. But `/speckit.implement` runs them all in one flat context. This extension fixes that — it scans Claude Code and Codex agent definitions, assigns each task to the best-fit agent, and executes them via dedicated subagents.
 
 ![Concurrent execution of specialized agents](./agents.png)
 
@@ -33,22 +33,24 @@ As projects scale, this one-size-fits-all approach leaves room for improvement.
 /speckit.agent-assign.assign
 
 Agent Registry
-| # | ID                 | Runtime | Kind  | Source  | Description                         |
-|---|--------------------|---------|-------|---------|-------------------------------------|
-| 1 | claude:backend-dev | claude  | agent | project | Backend development specialist       |
-| 2 | codex-agent:worker | codex   | agent | builtin | General implementation worker        |
-| 3 | codex-skill:playwright | codex | skill | user | Browser automation skill             |
+| # | Agent ID           | Runtime | Source  | Description                              |
+|---|--------------------|---------|---------|------------------------------------------|
+| 1 | claude:backend-dev | claude  | project | Backend development specialist            |
+| 2 | codex:api-dev      | codex   | project | Codex API implementation agent            |
+| 3 | codex:test-writer  | codex   | user    | Codex unit and integration test author    |
 
 Task Assignments
-| Task ID | Description                    | Assigned Specialist | Reason                    |
+| Task ID | Description                    | Assigned Agent      | Reason                    |
 |---------|--------------------------------|---------------------|---------------------------|
 | T001    | Create project structure...    | default             | General setup task         |
 | T002    | Implement User model...        | claude:backend-dev  | Data model creation        |
-| T003    | Create API endpoint...         | codex-agent:worker  | Bounded implementation     |
-| T004    | Verify browser flow...         | codex-skill:playwright | Browser automation      |
+| T003    | Create API endpoint...         | codex:api-dev       | API implementation         |
+| T004    | Write unit tests for...        | codex:test-writer   | Test authoring             |
 
 Assignments written to: .specify/features/my-feature/agent-assignments.yml
 ```
+
+In dual-runtime projects, assignments use normalized ids such as `claude:backend-dev` and `codex:api-dev` so Claude Code and Codex agents can coexist without name collisions.
 
 ## Benchmark: Agent-Assign vs Standard Spec-Kit
 
@@ -98,7 +100,7 @@ Three frontier models (Gemini 3.1 Pro, GPT-5-4, Claude Opus 4.6) evaluated both 
 
 ## Quick Start
 
-> **Need ready-made agents?** Claude Code users can bootstrap `.claude/agents/` with the open-source [agency-agents](https://github.com/msitarzewski/agency-agents) collection. Codex users can rely on built-in `worker`/`explorer` roles, user agents in `~/.codex/agents/*.toml`, and project skills in `.agents/skills/*/SKILL.md`.
+> **Need ready-made agents?** Claude Code users can bootstrap `.claude/agents/` with the open-source [agency-agents](https://github.com/msitarzewski/agency-agents) collection. Codex users can define Codex agent TOML files in `.codex/agents/` or `~/.codex/agents/`.
 
 ```bash
 # Install the extension
@@ -121,28 +123,29 @@ specify extension add agent-assign --from https://github.com/xymelon/spec-kit-ag
 
 | Command | What it does |
 |---------|--------------|
-| `speckit.agent-assign.assign` | Scan available Claude Code and Codex specialists and assign them to tasks |
-| `speckit.agent-assign.validate` | Validate that all assignments are correct and specialists exist |
-| `speckit.agent-assign.execute` | Execute tasks with the assigned agent or skill guidance |
+| `speckit.agent-assign.assign` | Scan available agents and assign them to tasks |
+| `speckit.agent-assign.validate` | Validate that all assignments are correct and agents exist |
+| `speckit.agent-assign.execute` | Execute tasks by spawning the assigned agent for each task |
 
 ## How It Works
 
 ### 1. Assign
 
-Scans both Claude Code agent definitions and Codex agent/skill definitions. Assignment ids are normalized with runtime prefixes so same-name specialists can coexist.
+Scans Claude Code and Codex agent definitions following runtime-specific priority hierarchies:
 
-| Runtime | Priority | Location | Scope |
-|---------|----------|----------|-------|
-| Claude Code | High | `.claude/agents/*.md` | Project-level named agents |
-| Claude Code | Low | `~/.claude/agents/*.md` | User-level named agents |
-| Codex | High | `.codex/agents/*.toml` | Project-level Codex agents |
-| Codex | High | `.agents/skills/*/SKILL.md` | Project skills for Codex; generated `speckit-*` workflow skills are skipped by default |
-| Codex | Medium | `.codex/skills/*/SKILL.md` | Project-level Codex skills |
-| Codex | Low | `~/.codex/agents/*.toml` | User-level Codex agents |
-| Codex | Low | `~/.codex/skills/*/SKILL.md` | User-level Codex skills |
-| Codex | Built-in | `worker`, `explorer` | Built-in Codex agent roles |
+| Priority | Location | Scope |
+|----------|----------|-------|
+| High | `.claude/agents/*.md` | Project-level specialists |
+| Low | `~/.claude/agents/*.md` | User-level reusable agents |
 
-Same-name specialists at higher priority override lower ones within the same runtime/kind. Each task is auto-matched to the best-fit specialist based on:
+Codex support adds these agent sources:
+
+| Priority | Location | Scope |
+|----------|----------|-------|
+| High | `.codex/agents/*.toml` | Project-level Codex agents |
+| Low | `~/.codex/agents/*.toml` | User-level Codex agents |
+
+Same-name agents at higher priority override lower ones. Cross-runtime assignments use normalized ids (`claude:<name>` and `codex:<name>`) when needed. Each task is auto-matched to the best-fit agent based on:
 - **File path patterns** — `src/api/` routes to API agents, `tests/` routes to test agents
 - **Task action keywords** — "Create model" maps to backend, "Write test" maps to test-writer
 - **Story context** — Setup tasks may need different agents than implementation tasks
@@ -157,16 +160,14 @@ runtimes_scanned:
 agents_scanned:
   - id: "claude:backend-dev"
     runtime: "claude"
-    kind: "agent"
     name: "backend-dev"
     source: "project"
     description: "Backend development specialist"
-  - id: "codex-agent:worker"
+  - id: "codex:api-dev"
     runtime: "codex"
-    kind: "agent"
-    name: "worker"
-    source: "builtin"
-    description: "General implementation worker for bounded tasks"
+    name: "api-dev"
+    source: "project"
+    description: "Codex API implementation agent"
 
 assignments:
   T001:
@@ -176,38 +177,40 @@ assignments:
     agent: "claude:backend-dev"
     reason: "Data model creation matches backend-dev capabilities"
   T003:
-    agent: "codex-agent:worker"
-    reason: "Bounded implementation task suitable for a Codex worker"
+    agent: "codex:api-dev"
+    reason: "API implementation aligns with api-dev capabilities"
 ```
+
+Dual-runtime assignment files use normalized agent ids such as `claude:backend-dev` and `codex:api-dev`.
 
 ### 2. Validate
 
 A read-only check that catches problems before execution:
 
 - **Coverage** — every task in `tasks.md` has an assignment
-- **Specialist existence** — every assigned agent or skill still exists
-- **Agent drift** — detects agents or skills added or removed since assignment
-- **Conflicts** — same specialist name at multiple hierarchy levels
-- **Metadata validity** — Claude/Codex Markdown frontmatter and Codex TOML metadata are parseable
+- **Agent existence** — every assigned agent still exists on disk
+- **Agent drift** — detects agents added or removed since assignment
+- **Conflicts** — same agent name at multiple hierarchy levels
+- **Frontmatter validity** — each agent file has proper YAML metadata
+- **Codex metadata validity** — each Codex agent TOML file is parseable
 
 ### 3. Execute
 
 Replaces `/speckit.implement` with agent-aware execution:
 
 - Tasks assigned to `default` run inline (same as standard implement)
-- Tasks assigned to `claude:<name>` use the matching Claude Code agent
-- Tasks assigned to `codex-agent:<name>` use Codex multi-agent tooling when available
-- Tasks assigned to `codex-skill:<name>` apply that Codex skill's guidance before execution
+- Tasks assigned to a named agent are **spawned as dedicated subagents** with full context
+- Tasks assigned to `codex:<name>` use matching Codex agent definitions when available
 - Phase ordering, dependency tracking, and `[P]` parallel markers are all respected
 - Progress is tracked in `tasks.md` with per-task and per-phase reporting
 
 ```
 Phase 2: Foundational — Complete (5/5 tasks)
   T002 (claude:backend-dev)  — Implemented User model
-  T003 (codex-agent:worker)  — Created API endpoints
-  T004 (codex-skill:playwright) — Verified browser flow
-  T005 (default) — Added routing layer
-  T006 (claude:test-writer)  — Wrote integration tests
+  T003 (codex:api-dev)       — Created API endpoints
+  T004 (claude:frontend-dev) — Built React components
+  T005 (claude:frontend-dev) — Added routing layer
+  T006 (codex:test-writer)   — Wrote integration tests
 ```
 
 ## Workflow Integration
@@ -229,10 +232,10 @@ The `after_tasks` hook can automatically trigger agent assignment after task gen
 ## Installation
 
 ```bash
-# From latest release
+# From release (recommended)
 specify extension add agent-assign --from https://github.com/xymelon/spec-kit-agent-assign/archive/refs/tags/v1.1.0.zip
 
-# From main branch (latest, includes unreleased changes)
+# From main branch (latest)
 specify extension add agent-assign --from https://github.com/xymelon/spec-kit-agent-assign/archive/refs/heads/main.zip
 
 # Development mode (local clone)
@@ -243,9 +246,9 @@ specify extension add --dev /path/to/spec-kit-agent-assign
 
 ## Configuration
 
-No extension-specific configuration is required. The extension discovers specialists from the conventions used by the active coding agent.
+Agent definitions are standard Claude Code agent files (`.claude/agents/*.md`). No additional configuration is required — the extension discovers agents automatically using Claude Code's built-in hierarchy.
 
-For Claude Code, agent definitions are standard Claude Code agent files (`.claude/agents/*.md` and `~/.claude/agents/*.md`):
+To get the most out of this extension, define specialized agents for your project:
 
 ```bash
 # Example: create a backend specialist agent
@@ -260,30 +263,16 @@ EOF
 
 Or use the [agency-agents](https://github.com/msitarzewski/agency-agents) library to quickly populate your agent roster with battle-tested definitions.
 
-For Codex, spec-kit installs commands as skills under `.agents/skills/*/SKILL.md`. This extension also discovers Codex project agents under `.codex/agents/*.toml`, user agents under `~/.codex/agents/*.toml`, project/user Codex skills, and the built-in `worker` and `explorer` roles. Generated `speckit-*` workflow command skills are skipped by default so they do not crowd the task-specialist registry.
-
-```bash
-# Example: a project Codex skill discovered as codex-skill:backend-review
-mkdir -p .agents/skills/backend-review
-cat > .agents/skills/backend-review/SKILL.md << 'EOF'
----
-name: backend-review
-description: Backend review guidance for API, data model, and persistence tasks
----
-
-Use this skill for backend implementation and review tasks.
-EOF
-```
+For Codex, this extension discovers Codex project agents under `.codex/agents/*.toml` and user agents under `~/.codex/agents/*.toml`.
 
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| "No agent or skill definition files found" | Create Claude files in `.claude/agents/`, Codex agent TOML files in `.codex/agents/`, or Codex skills in `.agents/skills/*/SKILL.md` |
+| "No agent definition files found" | Create agent files in `.claude/agents/` or `~/.claude/agents/`, or use [agency-agents](https://github.com/msitarzewski/agency-agents). For Codex, create agent TOML files in `.codex/agents/` or `~/.codex/agents/`. |
 | "No agent-assignments.yml found" | Run `/speckit.agent-assign.assign` before validate or execute |
 | Agent drift detected during validation | Re-run `/speckit.agent-assign.assign` to update assignments |
-| Ambiguous legacy assignment | Re-run `/speckit.agent-assign.assign` so assignments use normalized ids like `claude:<name>` or `codex-agent:<name>` |
-| Task assigned to missing agent or skill | The execute command falls back to `default` mode with a warning when safe |
+| Task assigned to missing agent | The execute command falls back to `default` mode with a warning when safe |
 
 ## Why This Matters
 

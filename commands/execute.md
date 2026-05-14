@@ -1,5 +1,5 @@
 ---
-description: Execute tasks with the assigned Claude Code or Codex agent or skill
+description: Execute tasks by spawning the assigned Claude Code or Codex agent for each task
 scripts:
   sh: scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
   ps: scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks
@@ -55,7 +55,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Task phases**: Setup, Foundational, User Stories, Polish
    - **Task dependencies**: Sequential vs parallel execution rules
    - **Task details**: ID, description, file paths, parallel markers [P], story labels
-   - **Agent assignments**: Look up each task ID in `agent-assignments.yml` to get assigned specialist id
+   - **Agent assignments**: Look up each task ID in `agent-assignments.yml` to get assigned agent id
    - **Assignment schema**: Treat missing `schema_version` as legacy v1 and resolve unprefixed names against the current registry when unambiguous
 
 6. **Execute Tasks Phase by Phase**: For each phase in tasks.md, process tasks in order:
@@ -64,15 +64,15 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Look up the assignment from `agent-assignments.yml`
    - Determine execution mode from the assignment id
 
-   ## Codex Execution Modes
+   ## Execution Modes
 
-   **Mode A - Default inline execution**
+   **Mode A - Default (no specialized agent)**:
    If the task is assigned to `default`, execute the task directly in the current context, following the same implementation rules as `/speckit.implement`:
    - Read relevant context files
    - Implement the task according to its description
    - Validate the result
 
-   **Mode B - Claude Code named agent**
+   **Mode B - Claude Code Agent**:
    If the task is assigned to `claude:<name>` or to a legacy unprefixed Claude agent name:
    - Use the named Claude Code agent `<name>` to execute this task
    - Provide a clear prompt containing:
@@ -83,27 +83,18 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Wait for the agent to complete its work
    - Verify the agent's output by checking files created/modified as expected
 
-   **Mode C - Codex agent**
-   If the task is assigned to `codex-agent:<name>`:
-   - Use Codex multi-agent tooling when available to spawn the requested agent type.
-   - Use `worker` for bounded implementation tasks and `explorer` only for read-only investigation.
-   - If the requested Codex agent type is unavailable in the current Codex environment, fall back to `codex-agent:worker` when that is safe; otherwise fall back to `default` and warn the user.
-   - Tell spawned Codex workers that they are not alone in the codebase, must not revert others' edits, and must list changed files in their final response.
+   **Mode C - Codex Agent**:
+   If the task is assigned to `codex:<name>`:
+   - Use the matching Codex agent definition when the current Codex environment supports named project or user agents.
+   - Provide the same task prompt structure used for Claude Code agents.
+   - Tell spawned Codex agents that they are not alone in the codebase, must not revert others' edits, and must list changed files in their final response.
    - For Codex parallel tasks, assign disjoint file ownership in the prompt. Do not run tasks touching the same files in parallel.
    - Verify the agent's output by inspecting the diff and running the task's relevant checks.
-
-   **Mode D - Codex skill**
-   If the task is assigned to `codex-skill:<name>`:
-   - Use the named Codex skill before doing the task. In a skills-backed Codex setup this may mean invoking the skill directly; otherwise read the matching `SKILL.md` and follow its workflow.
-   - Execute the task inline or by spawning `codex-agent:worker`, depending on task size and available multi-agent tooling.
-   - Include the skill name in progress reports so the user can see which guidance was applied.
-   - If the skill file is missing at execution time, fall back to `default` and warn the user.
 
    **Dependency and ordering rules**:
    - Complete each phase before moving to the next
    - Within a phase, run sequential tasks in order
    - Tasks marked [P] that are assigned to different spawnable agents can run in parallel
-   - A `codex-skill:<name>` assignment is not by itself spawnable; only run it in parallel when you pair it with a spawnable Codex agent and file ownership is disjoint
    - Tasks affecting the same files must run sequentially regardless of [P] marker
    - If a task fails, halt execution for that phase and report the error
 
@@ -113,9 +104,8 @@ You **MUST** consider the user input before proceeding (if not empty).
      ```
      OK T001 (default) Created project structure
      OK T002 (claude:backend-dev) Implemented User model
-     OK T003 (codex-agent:worker) Created API endpoints
-     OK T004 (codex-skill:playwright) Verified browser flow
-     FAIL T005 (codex-agent:worker) Test command failed
+     OK T003 (codex:api-dev) Created API endpoints
+     FAIL T004 (codex:test-writer) Test command failed
      ```
    - After each phase, display a phase summary:
      ```
@@ -128,7 +118,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - If a spawned agent fails or produces unexpected results, report the error with context
    - For non-parallel tasks, halt execution on failure and suggest next steps
    - For parallel tasks [P], continue with other tasks, collect and report all failures at phase end
-   - If an assigned specialist is missing at execution time, fall back to `default` mode only after warning the user
+   - If an assigned agent is missing at execution time, fall back to `default` mode only after warning the user
    - If a legacy unprefixed assignment is ambiguous, stop and ask the user to regenerate assignments with `/speckit.agent-assign.assign`
 
 9. **Completion Validation**:
@@ -149,7 +139,7 @@ You **MUST** consider the user input before proceeding (if not empty).
      | Polish  | 2     | 2         | 0      | 0       |
      | **Total** | **17** | **17** | **0** | **0** |
 
-     Specialists used: claude:backend-dev (6 tasks), codex-agent:worker (4 tasks), codex-skill:playwright (1 task), default (4 tasks)
+     Agents used: claude:backend-dev (6 tasks), codex:api-dev (4 tasks), default (4 tasks)
      ```
 
 Note: This command requires both `tasks.md` and `agent-assignments.yml` to exist. If tasks.md is missing, suggest running `/speckit.tasks` first. If agent-assignments.yml is missing, suggest running `/speckit.agent-assign.assign` first.

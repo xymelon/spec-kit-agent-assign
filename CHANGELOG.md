@@ -10,13 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Dual-mode Claude Code and Codex assignment support.
-- Codex discovery for `.codex/agents/*.toml`, `.agents/skills/*/SKILL.md`, `.codex/skills/*/SKILL.md`, user-level Codex agents/skills, and built-in `worker`/`explorer` roles.
-- Normalized assignment ids (`claude:<name>`, `codex-agent:<name>`, `codex-skill:<name>`) with validation guidance for legacy unprefixed assignments.
-- Default filtering for generated `speckit-*` workflow skills so Codex command skills do not crowd the task-specialist registry.
+- Codex discovery for `.codex/agents/*.toml` and user-level Codex agents.
+- Normalized assignment ids (`claude:<name>`, `codex:<name>`) with validation guidance for legacy unprefixed assignments.
 
 ### Changed
 
-- Update assign, validate, and execute command prompts to distinguish Claude agents, Codex agents, and Codex skills.
+- Update assign, validate, and execute command prompts to distinguish Claude agents and Codex agents.
 - Update README installation and configuration guidance for dual-runtime usage.
 - Keep `.extensionignore` comments ASCII-only so `specify extension add --dev` works on Windows systems with non-UTF-8 default code pages.
 

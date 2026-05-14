@@ -4,7 +4,7 @@ extension:
   id: "agent-assign"
   name: "Agent Assign"
   version: "1.2.0"
-  description: "Assign specialized Claude Code and Codex agents or skills to spec-kit tasks for targeted execution"
+  description: "Assign specialized Claude Code and Codex agents to spec-kit tasks for targeted execution"
   author: "xuyang"
   repository: "https://github.com/xymelon/spec-kit-agent-assign"
   license: "MIT"
@@ -19,13 +19,13 @@ provides:
   commands:
     - name: "speckit.agent-assign.assign"
       file: "commands/assign.md"
-      description: "Scan available Claude Code and Codex agents or skills and assign them to tasks in tasks.md"
+      description: "Scan available Claude Code and Codex agents and assign them to tasks in tasks.md"
     - name: "speckit.agent-assign.validate"
       file: "commands/validate.md"
-      description: "Validate that all agent assignments are correct and specialists exist"
+      description: "Validate that all agent assignments are correct and agents exist"
     - name: "speckit.agent-assign.execute"
       file: "commands/execute.md"
-      description: "Execute tasks with the assigned Claude Code or Codex agent or skill"
+      description: "Execute tasks by spawning the assigned Claude Code or Codex agent for each task"
 
 hooks:
   after_tasks:
