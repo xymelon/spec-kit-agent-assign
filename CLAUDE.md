@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A [Spec-Kit](https://github.com/github/spec-kit/) extension that adds agent assignment capabilities to the task execution workflow. It allows tasks in `tasks.md` to be assigned to specialized Claude Code agents, validated, and executed via dedicated subagents.
+A [Spec-Kit](https://github.com/github/spec-kit/) extension that adds agent assignment capabilities to the task execution workflow. It allows tasks in `tasks.md` to be assigned to specialized Claude Code agents, validated, and executed via dedicated subagents. It also supports Codex agent assignments.
 
 Three commands:
 - `/speckit.agent-assign.assign` — Scan available agent definitions and assign them to tasks
@@ -27,23 +27,31 @@ Three commands:
 
 ## Agent Scanning Hierarchy
 
-Agent definitions are discovered following Claude Code's official priority (high overrides low):
-1. **Project-level**: `.claude/agents/*.md`
-2. **User-level**: `~/.claude/agents/*.md`
+Agent definitions are discovered following runtime-specific priority (high overrides low):
 
-Same-name agents at higher priority override lower ones.
+Claude Code:
+1. **Project-level agents**: `.claude/agents/*.md`
+2. **User-level agents**: `~/.claude/agents/*.md`
+
+Codex:
+1. **Project-level agents**: `.codex/agents/*.toml`
+2. **User-level agents**: `~/.codex/agents/*.toml`
+
+Same-name agents at higher priority override lower ones within the same runtime. Cross-runtime names coexist by using normalized ids such as `claude:<name>` and `codex:<name>`.
 
 ## Agent Assignment Storage
 
 Assignments are stored in `agent-assignments.yml` in the feature directory (alongside tasks.md):
 ```yaml
 agents_scanned:
-  - name: "agent-name"
+  - id: "claude:agent-name"
+    runtime: "claude"
+    name: "agent-name"
     source: "project"
     description: "Agent description"
 assignments:
   T001:
-    agent: "agent-name"
+    agent: "claude:agent-name"
     reason: "Why this agent was chosen"
 ```
 
