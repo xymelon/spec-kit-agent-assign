@@ -16,7 +16,7 @@ Thumbs.db
 # Maintainer-only docs (Claude Code instructions for extension developers, not users)
 CLAUDE.md
 
-# Host spec-kit workspace used to develop this extension — NOT part of the extension.
+# Host spec-kit workspace used to develop this extension - NOT part of the extension.
 # Contains core command copies (speckit.specify.md, speckit.tasks.md, etc.) that would
 # otherwise be shipped verbatim alongside our extension commands.
 .claude/
