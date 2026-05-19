@@ -38,18 +38,44 @@ Verify that agent assignments in `agent-assignments.yml` are complete, consisten
    - Parse `agent-assignments.yml` to extract the `agents_scanned` list and `assignments` mapping
    - Parse `tasks.md` to extract all task IDs
 
-4. **Rescan Agent Definitions**: Discover currently available agent definition files following the same hierarchy as the assign command:
+4. **Rescan Agent Definitions**: Discover currently available agent definition files to build a fresh registry for comparison against `agents_scanned` in the assignment file.
 
-   **Scanning priority order** (highest to lowest):
-   1. **Project-level**: `.claude/agents/*.md` in the repository root
-   2. **User-level**: `~/.claude/agents/*.md` in the user's home directory
+   **Step 4a — Run discovery script (preferred)**:
 
-   For each agent file:
-   - Parse YAML frontmatter to extract name and description
-   - Record source level
-   - Deduplicate by name (highest priority wins)
+   Check whether the extension's discovery script is installed:
 
-   Build a **Current Agent Registry** for comparison against `agents_scanned` in the assignment file.
+   ```sh
+   ls .specify/extensions/agent-assign/scripts/bash/discover-agents.sh 2>/dev/null && echo "FOUND" || echo "NOT_FOUND"
+   ```
+
+   **If FOUND**, run it from the repository root:
+
+   ```sh
+   bash .specify/extensions/agent-assign/scripts/bash/discover-agents.sh \
+     --repo-root "$(pwd)" \
+     --config ".claude/agent-assign.yml"
+   ```
+
+   On Windows / PowerShell:
+
+   ```powershell
+   & ".specify\extensions\agent-assign\scripts\powershell\discover-agents.ps1" `
+     -RepoRoot (Get-Location).Path `
+     -Config "claude\agent-assign.yml"
+   ```
+
+   **If NOT FOUND**, fall back to inline discovery:
+
+   ```sh
+   find "$(pwd)/.claude/agents" -maxdepth 1 -name "*.md" 2>/dev/null
+   find "$HOME/.claude/agents" -maxdepth 1 -name "*.md" 2>/dev/null
+   ```
+
+   For each file found, read its YAML frontmatter using the Read tool. Extract `name` (fall back to filename stem) and `description`. Note source level. Apply manual deduplication (project wins over user for same name).
+
+   **Step 4b — Build Current Agent Registry**: Parse all discovered agents into a registry table. Agents from additional config sources are included. This registry is used in validation checks 2, 3, 4, and 5 below.
+
+   Note: Run the script with `--config ".claude/agent-assign.yml"` even if you are unsure the file exists — the script silently skips it when absent.
 
 5. **Run Validation Checks**: Perform the following checks and record results:
 
