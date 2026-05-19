@@ -25,25 +25,60 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 1. **Setup**: Run `{SCRIPT}` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
-2. **Scan Agent Definitions**: Discover all available Claude Code agent definition files following the official hierarchy. Higher-priority levels override lower-priority agents with the same name.
+2. **Scan Agent Definitions**: Discover all available Claude Code agent definition files and build the Agent Registry.
 
-   **Scanning priority order** (highest to lowest):
-   1. **Project-level**: `.claude/agents/*.md` in the repository root
-   2. **User-level**: `~/.claude/agents/*.md` in the user's home directory
+   **Step 2a — Check for additional sources config**: Look for `.claude/agent-assign.yml` in the repository root. If found, it lists extra directories to scan under `additional_agent_sources`. The config is optional — its absence means only the standard two paths are scanned.
 
-   For each agent file found:
-   - Parse the YAML frontmatter to extract the agent `name` (filename without `.md` if not in frontmatter) and `description`
-   - Record the agent's source level (project / user)
-   - If the same agent name appears at multiple levels, keep only the highest-priority definition
+   **Step 2b — Run discovery script (preferred)**:
 
-   Build an **Agent Registry** table:
+   Check whether the extension's discovery script is installed:
+
+   ```sh
+   ls .specify/extensions/agent-assign/scripts/bash/discover-agents.sh 2>/dev/null && echo "FOUND" || echo "NOT_FOUND"
+   ```
+
+   **If FOUND**, run it from the repository root:
+
+   ```sh
+   bash .specify/extensions/agent-assign/scripts/bash/discover-agents.sh \
+     --repo-root "$(pwd)" \
+     --config ".claude/agent-assign.yml"
+   ```
+
+   On Windows / PowerShell:
+
+   ```powershell
+   & ".specify\extensions\agent-assign\scripts\powershell\discover-agents.ps1" `
+     -RepoRoot (Get-Location).Path `
+     -Config "claude\agent-assign.yml"
+   ```
+
+   Each line of stdout is a JSON object. Collect all lines as the raw agent list:
 
    ```text
-   | # | Agent Name      | Source  | Description                              |
-   |---|-----------------|---------|------------------------------------------|
-   | 1 | backend-dev     | project | Backend development specialist            |
-   | 2 | frontend-dev    | project | Frontend React/TypeScript specialist      |
-   | 3 | test-writer     | user    | Unit and integration test author          |
+   {"name":"backend-dev","source":"project","description":"Backend specialist","path":"/abs/.claude/agents/backend-dev.md"}
+   {"name":"test-writer","source":"user","description":"Test author","path":"/home/user/.claude/agents/test-writer.md"}
+   {"name":"api-dev","source":"vscode-plugin","description":"REST API specialist","path":"/abs/plugin/agents/api-dev.md"}
+   ```
+
+   **If NOT FOUND**, fall back to inline discovery. Run:
+
+   ```sh
+   find "$(pwd)/.claude/agents" -maxdepth 1 -name "*.md" 2>/dev/null
+   find "$HOME/.claude/agents" -maxdepth 1 -name "*.md" 2>/dev/null
+   ```
+
+   For each file found, read its YAML frontmatter using the Read tool. Extract `name` (fall back to the filename stem if `name:` is absent from frontmatter) and `description`. Note the source level (`project` for the first path, `user` for the second). Apply deduplication manually: if the same agent name appears in both directories, keep only the project-level entry. Config-sourced additional paths are not scanned in fallback mode.
+
+   **Step 2c — Build Agent Registry**: Parse the collected JSON objects (script mode) or manual scan results (fallback mode) into the Agent Registry table:
+
+   ```text
+   | # | Agent Name      | Source       | Description                              |
+   |---|-----------------|--------------|------------------------------------------|
+   | 1 | backend-dev     | project      | Backend development specialist            |
+   | 2 | frontend-dev    | project      | Frontend React/TypeScript specialist      |
+   | 3 | test-writer     | user         | Unit and integration test author          |
+   | 4 | api-dev         | vscode-plugin| REST API design and implementation        |
    ```
 
    If no agent definition files are found at any level, **STOP** and report: "No agent definition files found at any hierarchy level. Since there are no specialized agents available, it is recommended to use `/speckit.implement` directly for task execution."

@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-05-19
+
+### Added
+
+- `scripts/bash/discover-agents.sh` — deterministic agent discovery script. Replaces
+  Claude's prose-based filesystem scan with a bash script that reliably finds all agent
+  definition files. Accepts `--repo-root` and `--config` flags. Outputs JSON Lines
+  (one object per agent). Handles deduplication by priority (project > user > custom)
+  and correctly JSON-escapes all string fields via python3.
+- `scripts/powershell/discover-agents.ps1` — Windows/PowerShell equivalent with
+  identical output format and flag interface (`-RepoRoot`, `-Config`).
+- `.claude/agent-assign.yml` config file support — users can list additional agent
+  source directories (e.g., VS Code plugin agent folders, company-shared repos) under
+  `additional_agent_sources`. Each entry specifies a `path` and optional `label`.
+  Agents from extra sources participate in the same deduplication priority chain
+  (project > user > custom, in config list order).
+
+### Changed
+
+- `commands/assign.md` step 2 — script-first approach: Claude checks for the discovery
+  script at `.specify/extensions/agent-assign/scripts/bash/discover-agents.sh`, runs it
+  if present, and parses JSON Lines output to build the Agent Registry. Falls back to
+  explicit inline `find` commands when the script is not installed (backward compatible).
+- `commands/validate.md` step 4 — same script-first approach for consistent agent
+  rescanning during validation, including agents from extra config sources.
+
 ## [1.1.0] - 2026-04-28
 
 ### Added

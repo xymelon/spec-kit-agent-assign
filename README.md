@@ -219,9 +219,9 @@ specify extension add --dev /path/to/spec-kit-agent-assign
 
 ## Configuration
 
-Agent definitions are standard Claude Code agent files (`.claude/agents/*.md`). No additional configuration is required — the extension discovers agents automatically using Claude Code's built-in hierarchy.
+### Defining Agents
 
-To get the most out of this extension, define specialized agents for your project:
+Agent definitions are standard Claude Code agent files (`.claude/agents/*.md`). To get the most out of this extension, define specialized agents for your project:
 
 ```bash
 # Example: create a backend specialist agent
@@ -235,6 +235,64 @@ EOF
 ```
 
 Or use the [agency-agents](https://github.com/msitarzewski/agency-agents) library to quickly populate your agent roster with battle-tested definitions.
+
+### Adding Extra Agent Source Directories
+
+By default the extension scans:
+
+| Priority | Location |
+|----------|----------|
+| High     | `.claude/agents/*.md` in the repo root (project-level) |
+| Low      | `~/.claude/agents/*.md` in your home directory (user-level) |
+
+To include agents from additional directories — for example, a VS Code extension's agent folder or a company-shared repository — create `.claude/agent-assign.yml` in your project root:
+
+```yaml
+# .claude/agent-assign.yml
+additional_agent_sources:
+  - path: "~/.vscode/extensions/my-company-agents/agents"
+    label: "vscode-plugin"
+  - path: "/opt/company/shared-agents"
+    label: "company"
+  - path: "../team-agents/agents"    # relative paths resolved from repo root
+    label: "team"
+```
+
+**Field reference**:
+
+| Field   | Required | Description |
+|---------|----------|-------------|
+| `path`  | Yes      | Directory containing `*.md` agent files. Supports `~` expansion and relative paths. |
+| `label` | No       | Shown as `source` in the Agent Registry table. Defaults to `"custom"` if omitted. |
+
+Entries are scanned in list order after project-level and user-level paths. If an agent name already exists from a higher-priority source, the duplicate is silently skipped.
+
+### Agent Discovery Script
+
+When installed via `specify extension add`, a deterministic discovery script is placed at:
+
+```
+.specify/extensions/agent-assign/scripts/bash/discover-agents.sh        # Unix/macOS
+.specify/extensions/agent-assign/scripts/powershell/discover-agents.ps1 # Windows
+```
+
+You can run it directly to see exactly what agents Claude will discover:
+
+```bash
+bash .specify/extensions/agent-assign/scripts/bash/discover-agents.sh \
+  --repo-root "$(pwd)" \
+  --config ".claude/agent-assign.yml"
+```
+
+Example output:
+
+```
+{"name":"backend-dev","source":"project","description":"Backend development specialist","path":"/your/repo/.claude/agents/backend-dev.md"}
+{"name":"test-writer","source":"user","description":"Unit and integration test author","path":"/home/you/.claude/agents/test-writer.md"}
+{"name":"api-specialist","source":"vscode-plugin","description":"REST API design specialist","path":"/home/you/.vscode/extensions/.../agents/api-specialist.md"}
+```
+
+The `/speckit.agent-assign.assign` and `/speckit.agent-assign.validate` commands use this script automatically when it is present.
 
 ## Troubleshooting
 

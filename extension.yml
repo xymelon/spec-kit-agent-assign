@@ -3,7 +3,7 @@ schema_version: "1.0"
 extension:
   id: "agent-assign"
   name: "Agent Assign"
-  version: "1.1.0"
+  version: "1.2.0"
   description: "Assign specialized Claude Code agents to spec-kit tasks for targeted execution"
   author: "xuyang"
   repository: "https://github.com/xymelon/spec-kit-agent-assign"
